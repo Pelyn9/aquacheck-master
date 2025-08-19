@@ -1,0 +1,165 @@
+/* ================================
+   PAGE WRAPPER (full screen layout)
+   ================================ */
+.login-wrapper.modern {
+  display: flex; /* Centers the content horizontally */
+  justify-content: center;
+  align-items: center; /* Centers vertically */
+  min-height: 94.2vh; /* Almost full height */
+  background: linear-gradient(-45deg, #004e92, #000428, #001d3d, #003566); /* Background gradient */
+  background-size: 400% 400%;
+  animation: gradientFlow 12s ease infinite; /* Animated background */
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  padding: 20px;
+}
+
+/* Background gradient animation keyframes */
+@keyframes gradientFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ================================
+   LOGIN CARD (form container)
+   ================================ */
+.login-card.modern {
+  background: rgba(255, 255, 255, 0.15); /* Transparent white */
+  backdrop-filter: blur(18px); /* Glass effect */
+  padding: 48px 60px;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 500px; /* Limit card width */
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: white;
+  animation: slideUpFade 0.7s ease forwards; /* Fade-in animation */
+}
+
+/* Fade-up animation for the card */
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Subtitle styling */
+.subtitle.highlight {
+  color: #94d2bd;
+  font-weight: 700;
+  margin-bottom: 32px;
+  font-size: 1.25rem;
+  text-shadow: 0 0 8px #7bb298;
+}
+
+/* ================================
+   FORM LAYOUT (2-column grid)
+   ================================ */
+.grid-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* Two equal columns */
+  gap: 18px 24px; /* Row gap & column gap */
+  width: 100%;
+}
+
+/* Make certain elements span both columns */
+.grid-form .full-width {
+  grid-column: 1 / -1;
+}
+
+/* ================================
+   INPUT FIELD STYLING
+   ================================ */
+.input-group.modern {
+  text-align: left;
+  width: 100%;
+}
+
+.input-group.modern label {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: #d1e9ff;
+}
+
+.input-modern {
+  width: 100%;
+  padding: 14px 18px;
+  border-radius: 10px;
+  border: 1.8px solid rgba(255, 255, 255, 0.3);
+  font-size: 1.05rem;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  outline: none;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Placeholder text color */
+.input-modern::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Input focus glow */
+.input-modern:focus {
+  border-color: #00f5d4;
+  box-shadow: 0 0 12px rgba(0, 245, 212, 0.6);
+}
+
+/* ================================
+   BUTTON STYLING
+   ================================ */
+.btn {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 14px 0;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+/* Primary action button */
+.btn-primary {
+  background: linear-gradient(90deg, #00b4d8, #0096c7);
+  color: white;
+  box-shadow: 0 0 15px rgba(0, 180, 216, 0.6);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(90deg, #0096c7, #0077b6);
+  transform: scale(1.03);
+}
+
+.btn-primary:disabled {
+  background-color: #0077b6;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Secondary button (outline style) */
+.btn-secondary {
+  background-color: transparent;
+  border: 2px solid #00f5d4;
+  color: #00f5d4;
+}
+
+.btn-secondary:hover {
+  background-color: #00f5d4;
+  color: #001d3d;
+}
+
+/* ================================
+   ERROR MESSAGE
+   ================================ */
+.error-message {
+  margin-top: 15px;
+  color: #ff4d6d;
+  font-weight: 600;
+  font-size: 0.95rem;
+  max-width: 320px;
+  text-align: center;
+  text-shadow: 0 0 6px rgba(255, 77, 109, 0.7);
+}
