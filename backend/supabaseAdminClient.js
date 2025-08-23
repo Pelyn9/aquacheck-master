@@ -4,15 +4,11 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-// ⚠️ Service role key (keep secret - backend only)
-const supabaseUrl = process.env.SUPABASE_URL || "";
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const supabaseUrl = process.env.SUPABASE_URL;
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY; // DO NOT expose to frontend
 
-if (!supabaseUrl || !supabaseServiceKey) {
-  console.warn("⚠️ Missing Supabase admin environment variables.");
-} else {
-  console.log("✅ Supabase admin environment variables loaded successfully.");
+if (!supabaseUrl || !serviceKey) {
+  throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env");
 }
 
-// Export admin client (backend only)
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+export const supabaseAdmin = createClient(supabaseUrl, serviceKey);

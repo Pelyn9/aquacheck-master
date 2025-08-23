@@ -1,16 +1,13 @@
-// src/supabaseClient.js
 import { createClient } from "@supabase/supabase-js";
 
-// Get environment variables from .env file
-const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || "";
-const supabaseAnonKey = process.env.REACT_APP_SUPABASE_KEY || "";
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+const supabaseAnonKey = process.env.REACT_APP_SUPABASE_KEY;
 
-// Warn if missing
+console.log("Supabase URL:", supabaseUrl);
+console.log("Supabase Key exists?", !!supabaseAnonKey);
+
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn("⚠️ Supabase environment variables are missing. Please check your .env file.");
-} else {
-  console.log("✅ Supabase environment variables loaded successfully.");
+  throw new Error("❌ Missing Supabase environment variables. Check your .env file.");
 }
 
-// Create Supabase client (safe for frontend)
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
