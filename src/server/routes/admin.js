@@ -1,7 +1,7 @@
-// src/server/admin.js
-import { supabaseAdmin } from "./supabaseAdminClient.js";
+// backend/src/server/admin.js
+import { supabaseAdmin } from "../supabaseAdminClient.js";
 
-// Example: disable or enable a user
+// Disable or enable an Auth user
 export async function toggleUserStatus(userId, isActive) {
   try {
     const { data, error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
@@ -9,7 +9,7 @@ export async function toggleUserStatus(userId, isActive) {
     });
 
     if (error) throw error;
-    console.log(`✅ User ${userId} status updated: ${isActive ? "active" : "disabled"}`);
+    console.log(`✅ User ${userId} is now ${isActive ? "active" : "disabled"}`);
     return data;
   } catch (err) {
     console.error("❌ Error updating user status:", err.message);
@@ -17,7 +17,7 @@ export async function toggleUserStatus(userId, isActive) {
   }
 }
 
-// Example: delete a user
+// Delete an Auth user
 export async function deleteUser(userId) {
   try {
     const { data, error } = await supabaseAdmin.auth.admin.deleteUser(userId);
