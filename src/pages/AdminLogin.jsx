@@ -11,7 +11,7 @@ const AdminLogin = () => {
   const [error, setError] = useState("");
   const [showWelcome, setShowWelcome] = useState(false);
   const [countdown, setCountdown] = useState(5);
-  const [clicks, setClicks] = useState(0); // 👈 Track title clicks
+  const [, setClicks] = useState(0); // 👈 Track title clicks
 
   const navigate = useNavigate();
   const { setIsAdmin } = useContext(AdminContext);
@@ -102,7 +102,7 @@ const AdminLogin = () => {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@example.com"
+              placeholder="Email"
               className="input-modern"
               autoComplete="email"
             />
@@ -116,7 +116,7 @@ const AdminLogin = () => {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
+              placeholder="Password"
               className="input-modern"
               autoComplete="current-password"
             />
@@ -135,7 +135,7 @@ const AdminLogin = () => {
           <button
             type="button"
             className="btn btn-secondary"
-            style={{ padding: "6px 12px", fontSize: "0.9rem", borderRadius: "8px" }}
+            style={{ padding: "6px 12px", fontSize: "0.9rem", borderRadius: "8px"}}
             onClick={() => navigate("/forgot-password")}
           >
             Forgot Password?

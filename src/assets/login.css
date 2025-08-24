@@ -60,6 +60,8 @@
   width: 100%;
   max-width: 320px;
   position: relative;
+  margin-left: auto;
+  margin-right: auto; /* center inputs */
 }
 
 .input-group.modern label {
@@ -123,6 +125,12 @@
 /* =========================
    Buttons
    ========================= */
+form {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* ensures all buttons center */
+}
+
 .btn {
   cursor: pointer;
   font-weight: 600;
@@ -133,8 +141,10 @@
   font-size: 1.1rem;
   border: none;
   transition: all 0.3s ease;
-  margin: 10px auto;
+  margin: 10px auto; /* center horizontally */
   display: block;
+  text-align: center;
+  align-items: center;
 }
 
 /* Primary Button - Blue Gradient */

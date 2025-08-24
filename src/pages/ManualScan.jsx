@@ -1,19 +1,101 @@
 import React, { useState } from "react";
-import Sidebar from "../components/Sidebar"; 
-import "../assets/manualscan.css"; 
+import Sidebar from "../components/Sidebar";
+import { supabase } from "../supabaseClient";
+import "../assets/manualscan.css";
 
 const ManualScan = () => {
-  const [status, setStatus] = useState("Select a sensor to scan manually.");
+  const [selectedSensors, setSelectedSensors] = useState([]);
+  const [results, setResults] = useState({});
+  const [status, setStatus] = useState("✅ Select sensors and click Scan.");
+  const [scanning, setScanning] = useState(false);
 
-  const handleScan = (sensor) => {
-    setStatus(`🔍 Scanning ${sensor}...`);
+  const sensors = ["pH Level", "Turbidity", "Temperature", "TDS"];
 
-    // Simulate sensor scan delay
+  // ✅ Toggle sensor selection
+  const toggleSensor = (sensor) => {
+    setSelectedSensors((prev) =>
+      prev.includes(sensor)
+        ? prev.filter((s) => s !== sensor)
+        : [...prev, sensor]
+    );
+  };
+
+  // ✅ Generate realistic values
+  const generateSensorValue = (sensor) => {
+    switch (sensor) {
+      case "pH Level":
+        return (Math.random() * (8.5 - 6.5) + 6.5).toFixed(2);
+      case "Turbidity":
+        return (Math.random() * 10).toFixed(2) + " NTU";
+      case "Temperature":
+        return (Math.random() * (35 - 20) + 20).toFixed(2) + " °C";
+      case "TDS":
+        return (Math.random() * (600 - 100) + 100).toFixed(2) + " ppm";
+      default:
+        return "N/A";
+    }
+  };
+
+  // ✅ Scan selected sensors
+  const handleScan = () => {
+    setScanning(true);
+    setStatus("🔍 Scanning selected sensors...");
+
     setTimeout(() => {
-      // Example "fake data" result
-      const result = (Math.random() * 10 + 1).toFixed(2);
-      setStatus(`✅ ${sensor} scan complete. Value: ${result}`);
-    }, 1500);
+      const now = new Date().toLocaleString();
+      const newResults = {};
+
+      selectedSensors.forEach((sensor) => {
+        newResults[sensor] = generateSensorValue(sensor);
+      });
+
+      setResults({ time: now, ...newResults });
+      setStatus(`✅ Scan complete at ${now}`);
+      setScanning(false);
+    }, 2000);
+  };
+
+  // ✅ Scan all
+  const handleScanAll = () => {
+    setScanning(true);
+    setStatus("🔍 Scanning all sensors...");
+
+    setTimeout(() => {
+      const now = new Date().toLocaleString();
+      const allResults = {};
+
+      sensors.forEach((sensor) => {
+        allResults[sensor] = generateSensorValue(sensor);
+      });
+
+      setResults({ time: now, ...allResults });
+      setStatus(`✅ Full scan complete at ${now}`);
+      setScanning(false);
+    }, 2500);
+  };
+
+  // ✅ Manual save
+  const handleSave = async () => {
+    if (!results.time) {
+      setStatus("⚠ No results to save. Please scan first.");
+      return;
+    }
+
+    const data = {
+      time: results.time,
+      ph: results["pH Level"] || null,
+      turbidity: results["Turbidity"] || null,
+      temp: results["Temperature"] || null,
+      tds: results["TDS"] || null,
+    };
+
+    const { error } = await supabase.from("water_quality").insert([data]);
+    if (error) {
+      console.error("Error saving scan:", error.message);
+      setStatus("❌ Failed to save scan. Please try again.");
+    } else {
+      setStatus("✅ Scan saved to history!");
+    }
   };
 
   return (
@@ -24,33 +106,73 @@ const ManualScan = () => {
         <div className="manualscan-header">
           <h1>Manual Scan</h1>
           <p>
-            Choose which sensor to scan.{" "}
+            Select which sensors you want to scan and save manually.
+            <br />
             <strong>Auto Scan must be stopped</strong> to enable manual scanning.
           </p>
         </div>
 
-        <div className="manualscan-grid">
-          <div className="scan-card ph" onClick={() => handleScan("pH Level")}>
-            <h3>pH Level</h3>
-            <span>💧</span>
-          </div>
-          <div className="scan-card turbidity" onClick={() => handleScan("Turbidity")}>
-            <h3>Turbidity</h3>
-            <span>🌫️</span>
-          </div>
-          <div className="scan-card temp" onClick={() => handleScan("Temperature")}>
-            <h3>Temperature</h3>
-            <span>🌡️</span>
-          </div>
-          <div className="scan-card tds" onClick={() => handleScan("TDS")}>
-            <h3>TDS</h3>
-            <span>💦</span>
-          </div>
+        {/* ✅ Sensor cards */}
+        <div className="sensor-grid">
+          {sensors.map((sensor) => (
+            <div
+              key={sensor}
+              className={`sensor-card ${
+                selectedSensors.includes(sensor) ? "selected" : ""
+              }`}
+              onClick={() => toggleSensor(sensor)}
+            >
+              {sensor}
+            </div>
+          ))}
         </div>
 
-        <button className="scan-all-btn" onClick={() => handleScan("All Sensors")}>
-          🚀 Scan All
-        </button>
+        {/* ✅ Buttons */}
+        <div className="button-row">
+          {/* Show Scan Selected ONLY if a sensor is chosen */}
+          {selectedSensors.length > 0 && (
+            <button
+              className="scan-btn"
+              onClick={handleScan}
+              disabled={scanning}
+            >
+              🔍 Scan Selected
+            </button>
+          )}
+
+          <button
+            className="scan-all-btn"
+            onClick={handleScanAll}
+            disabled={scanning}
+          >
+            🚀 Scan All
+          </button>
+
+          <button
+            className="save-btn"
+            onClick={handleSave}
+            disabled={!results.time}
+          >
+            💾 Save Results
+          </button>
+        </div>
+
+        {/* ✅ Results */}
+        {results.time && (
+          <div className="results-box">
+            <h3>📊 Results (at {results.time})</h3>
+            <ul>
+              {Object.entries(results)
+                .filter(([key]) => key !== "time")
+                .map(([key, value]) => (
+                  <li key={key}>
+                    <span className="sensor-label">{key}:</span>{" "}
+                    <span className="sensor-value">{value}</span>
+                  </li>
+                ))}
+            </ul>
+          </div>
+        )}
 
         <div className="status-box">{status}</div>
 
