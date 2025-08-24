@@ -74,29 +74,43 @@ const ManualScan = () => {
     }, 2500);
   };
 
-  // ✅ Manual save
-  const handleSave = async () => {
-    if (!results.time) {
-      setStatus("⚠ No results to save. Please scan first.");
-      return;
-    }
+// ✅ Save scan results to Supabase (dataset_history)
+const handleSave = async () => {
+  if (!results.time) {
+    setStatus("⚠ No results to save. Please scan first.");
+    return;
+  }
 
-    const data = {
-      time: results.time,
-      ph: results["pH Level"] || null,
-      turbidity: results["Turbidity"] || null,
-      temp: results["Temperature"] || null,
-      tds: results["TDS"] || null,
-    };
-
-    const { error } = await supabase.from("water_quality").insert([data]);
-    if (error) {
-      console.error("Error saving scan:", error.message);
-      setStatus("❌ Failed to save scan. Please try again.");
-    } else {
-      setStatus("✅ Scan saved to history!");
-    }
+  // Convert strings with units (e.g., "5.12 NTU") into numbers
+  const toNum = (v) => {
+    if (!v) return null;
+    const n = parseFloat(v);
+    return Number.isNaN(n) ? null : n;
   };
+
+  const data = {
+    ph: toNum(results["pH Level"]),
+    turbidity: toNum(results["Turbidity"]),
+    temperature: toNum(results["Temperature"]),
+    tds: toNum(results["TDS"]),
+  };
+
+  // Make sure we actually got numbers
+  if ([data.ph, data.turbidity, data.temperature, data.tds].every(v => v === null)) {
+    setStatus("❌ No numeric values found. Please scan again.");
+    return;
+  }
+
+  const { error } = await supabase.from("dataset_history").insert([data]);
+
+  if (error) {
+    console.error("Error saving scan:", error.message);
+    setStatus("❌ Failed to save scan.");
+  } else {
+    setStatus("✅ Scan saved to history!");
+  }
+};
+
 
   return (
     <div className="dashboard-layout">

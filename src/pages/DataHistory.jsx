@@ -31,9 +31,10 @@ const DataHistory = () => {
   useEffect(() => {
     const fetchData = async () => {
       const { data: rows, error } = await supabase
-        .from("water_quality")
-        .select("*")
-        .order("time", { ascending: false }); // newest first
+       .from("dataset_history")
+       .select("*")
+       .order("created_at", { ascending: false });
+
 
       if (error) {
         console.error("Error fetching data:", error.message);
@@ -55,15 +56,16 @@ const DataHistory = () => {
       );
     }
     if (filters.date.trim() !== "") {
-      filtered = filtered.filter((entry) =>
-        entry.time.startsWith(filters.date)
-      );
-    }
+  filtered = filtered.filter((entry) =>
+    entry.created_at.startsWith(filters.date)
+  );
+  }
     if (filters.text.trim() !== "") {
-      filtered = filtered.filter((entry) =>
-        entry.time.toLowerCase().includes(filters.text.toLowerCase())
-      );
-    }
+  filtered = filtered.filter((entry) =>
+    entry.created_at.toLowerCase().includes(filters.text.toLowerCase())
+  );
+  }
+
 
     setFilteredData(filtered);
     setPage(1);
@@ -82,13 +84,14 @@ const DataHistory = () => {
     const csv = [
       ["Time", "pH", "Turbidity", "Temperature", "TDS", "Status"],
       ...filteredData.map((row) => [
-        row.time,
-        row.ph,
-        row.turbidity,
-        row.temp,
-        row.tds,
-        isSafe(row) ? "Safe" : "Unsafe",
-      ]),
+  row.created_at,
+  row.ph,
+  row.turbidity,
+  row.temperature,
+  row.tds,
+  isSafe(row) ? "Safe" : "Unsafe",
+]),
+
     ]
       .map((e) => e.join(","))
       .join("\n");
@@ -183,10 +186,10 @@ const DataHistory = () => {
               ) : (
                 currentData.map((entry, index) => (
                   <tr key={index} className={isSafe(entry) ? "safe" : "unsafe"}>
-                    <td>{entry.time}</td>
+                    <td>{new Date(entry.created_at).toLocaleString()}</td>
                     <td>{entry.ph}</td>
                     <td>{entry.turbidity}</td>
-                    <td>{entry.temp}</td>
+                    <td>{entry.temperature}</td>
                     <td>{entry.tds}</td>
                     <td>{isSafe(entry) ? "Safe" : "Unsafe"}</td>
                   </tr>
