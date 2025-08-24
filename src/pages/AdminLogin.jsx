@@ -11,16 +11,17 @@ const AdminLogin = () => {
   const [error, setError] = useState("");
   const [showWelcome, setShowWelcome] = useState(false);
   const [countdown, setCountdown] = useState(5);
+  const [clicks, setClicks] = useState(0); // 👈 Track title clicks
 
   const navigate = useNavigate();
-  const { setIsAdmin } = useContext(AdminContext); // <-- context
+  const { setIsAdmin } = useContext(AdminContext);
 
   useEffect(() => {
     let timer;
     if (showWelcome && countdown > 0) {
       timer = setTimeout(() => setCountdown(countdown - 1), 1000);
     } else if (showWelcome && countdown === 0) {
-      navigate("/dashboard"); // admin dashboard
+      navigate("/dashboard");
     }
     return () => clearTimeout(timer);
   }, [showWelcome, countdown, navigate]);
@@ -37,7 +38,6 @@ const AdminLogin = () => {
 
       if (error) throw error;
 
-      // ✅ Login successful → mark as admin
       setIsAdmin(true);
       localStorage.setItem("isAdmin", "true");
 
@@ -45,7 +45,6 @@ const AdminLogin = () => {
       setShowWelcome(true);
       setCountdown(5);
     } catch (err) {
-      // Ignore email confirmation error for dev
       if (err.message.includes("Email not confirmed")) {
         setIsAdmin(true);
         localStorage.setItem("isAdmin", "true");
@@ -56,6 +55,17 @@ const AdminLogin = () => {
         setError("❌ " + err.message);
       }
     }
+  };
+
+  // 👇 Easter egg click handler
+  const handleTitleClick = () => {
+    setClicks((prev) => {
+      const newCount = prev + 1;
+      if (newCount === 10) {
+        navigate("/create-admin"); // redirect
+      }
+      return newCount;
+    });
   };
 
   if (showWelcome) {
@@ -77,7 +87,10 @@ const AdminLogin = () => {
   return (
     <main className="login-wrapper modern">
       <section className="login-card modern">
-        <h1 className="title">AquaCheck</h1>
+        {/* 👇 Hidden shortcut Easter egg */}
+        <h1 className="title" onClick={handleTitleClick}>
+          AquaCheck
+        </h1>
         <p className="subtitle">Admin Login</p>
 
         <form onSubmit={handleEmailLogin} noValidate>
@@ -120,13 +133,13 @@ const AdminLogin = () => {
             Login
           </button>
           <button
-              type="button"
-              className="btn btn-secondary"
-              style={{ padding: "6px 12px", fontSize: "0.9rem", borderRadius: "8px" }}
-              onClick={() => navigate("/forgot-password")}
-            >
-              Forgot Password?
-            </button>
+            type="button"
+            className="btn btn-secondary"
+            style={{ padding: "6px 12px", fontSize: "0.9rem", borderRadius: "8px" }}
+            onClick={() => navigate("/forgot-password")}
+          >
+            Forgot Password?
+          </button>
           <button
             type="button"
             className="btn btn-visitor"
