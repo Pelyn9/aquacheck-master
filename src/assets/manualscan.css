@@ -194,3 +194,19 @@
   background: #b52a37;
   transform: scale(1.05);
 }
+/* ✅ Status colors for sensor results */
+.sensor-value.safe {
+  color: #28a745; /* Green */
+}
+
+.sensor-value.caution {
+  color: #ff9800; /* Orange */
+}
+
+.sensor-value.unsafe {
+  color: #dc3545; /* Red */
+}
+
+.sensor-value.unknown {
+  color: #6c757d; /* Gray */
+}

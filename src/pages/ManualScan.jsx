@@ -20,17 +20,44 @@ const ManualScan = () => {
     );
   };
 
+  // ✅ Evaluate sensor status
+  const getSensorStatus = (type, value) => {
+    if (!value || value === "N/A") return "unknown";
+
+    const val = parseFloat(value);
+    switch (type) {
+      case "pH Level":
+        if (val >= 6.5 && val <= 8.5) return "safe";
+        if ((val >= 6 && val < 6.5) || (val > 8.5 && val <= 9)) return "caution";
+        return "unsafe";
+      case "Turbidity":
+        if (val <= 5) return "safe";
+        if (val > 5 && val <= 10) return "caution";
+        return "unsafe";
+      case "Temperature":
+        if (val >= 24 && val <= 32) return "safe";
+        if ((val >= 20 && val < 24) || (val > 32 && val <= 35)) return "caution";
+        return "unsafe";
+      case "TDS":
+        if (val <= 500) return "safe";
+        if (val > 500 && val <= 1000) return "caution";
+        return "unsafe";
+      default:
+        return "unknown";
+    }
+  };
+
   // ✅ Generate realistic values
   const generateSensorValue = (sensor) => {
     switch (sensor) {
       case "pH Level":
-        return (Math.random() * (8.5 - 6.5) + 6.5).toFixed(2);
+        return (Math.random() * (9.5 - 5.5) + 5.5).toFixed(2);
       case "Turbidity":
-        return (Math.random() * 10).toFixed(2) + " NTU";
+        return (Math.random() * 15).toFixed(2) + " NTU";
       case "Temperature":
-        return (Math.random() * (35 - 20) + 20).toFixed(2) + " °C";
+        return (Math.random() * (38 - 18) + 18).toFixed(2) + " °C";
       case "TDS":
-        return (Math.random() * (600 - 100) + 100).toFixed(2) + " ppm";
+        return (Math.random() * (1200 - 50) + 50).toFixed(2) + " ppm";
       default:
         return "N/A";
     }
@@ -74,43 +101,40 @@ const ManualScan = () => {
     }, 2500);
   };
 
-// ✅ Save scan results to Supabase (dataset_history)
-const handleSave = async () => {
-  if (!results.time) {
-    setStatus("⚠ No results to save. Please scan first.");
-    return;
-  }
+  // ✅ Save scan results to Supabase (dataset_history)
+  const handleSave = async () => {
+    if (!results.time) {
+      setStatus("⚠ No results to save. Please scan first.");
+      return;
+    }
 
-  // Convert strings with units (e.g., "5.12 NTU") into numbers
-  const toNum = (v) => {
-    if (!v) return null;
-    const n = parseFloat(v);
-    return Number.isNaN(n) ? null : n;
+    const toNum = (v) => {
+      if (!v) return null;
+      const n = parseFloat(v);
+      return Number.isNaN(n) ? null : n;
+    };
+
+    const data = {
+      ph: toNum(results["pH Level"]),
+      turbidity: toNum(results["Turbidity"]),
+      temperature: toNum(results["Temperature"]),
+      tds: toNum(results["TDS"]),
+    };
+
+    if ([data.ph, data.turbidity, data.temperature, data.tds].every((v) => v === null)) {
+      setStatus("❌ No numeric values found. Please scan again.");
+      return;
+    }
+
+    const { error } = await supabase.from("dataset_history").insert([data]);
+
+    if (error) {
+      console.error("Error saving scan:", error.message);
+      setStatus("❌ Failed to save scan.");
+    } else {
+      setStatus("✅ Scan saved to history!");
+    }
   };
-
-  const data = {
-    ph: toNum(results["pH Level"]),
-    turbidity: toNum(results["Turbidity"]),
-    temperature: toNum(results["Temperature"]),
-    tds: toNum(results["TDS"]),
-  };
-
-  // Make sure we actually got numbers
-  if ([data.ph, data.turbidity, data.temperature, data.tds].every(v => v === null)) {
-    setStatus("❌ No numeric values found. Please scan again.");
-    return;
-  }
-
-  const { error } = await supabase.from("dataset_history").insert([data]);
-
-  if (error) {
-    console.error("Error saving scan:", error.message);
-    setStatus("❌ Failed to save scan.");
-  } else {
-    setStatus("✅ Scan saved to history!");
-  }
-};
-
 
   return (
     <div className="dashboard-layout">
@@ -143,30 +167,17 @@ const handleSave = async () => {
 
         {/* ✅ Buttons */}
         <div className="button-row">
-          {/* Show Scan Selected ONLY if a sensor is chosen */}
           {selectedSensors.length > 0 && (
-            <button
-              className="scan-btn"
-              onClick={handleScan}
-              disabled={scanning}
-            >
+            <button className="scan-btn" onClick={handleScan} disabled={scanning}>
               🔍 Scan Selected
             </button>
           )}
 
-          <button
-            className="scan-all-btn"
-            onClick={handleScanAll}
-            disabled={scanning}
-          >
+          <button className="scan-all-btn" onClick={handleScanAll} disabled={scanning}>
             🚀 Scan All
           </button>
 
-          <button
-            className="save-btn"
-            onClick={handleSave}
-            disabled={!results.time}
-          >
+          <button className="save-btn" onClick={handleSave} disabled={!results.time}>
             💾 Save Results
           </button>
         </div>
@@ -178,12 +189,15 @@ const handleSave = async () => {
             <ul>
               {Object.entries(results)
                 .filter(([key]) => key !== "time")
-                .map(([key, value]) => (
-                  <li key={key}>
-                    <span className="sensor-label">{key}:</span>{" "}
-                    <span className="sensor-value">{value}</span>
-                  </li>
-                ))}
+                .map(([key, value]) => {
+                  const status = getSensorStatus(key, value);
+                  return (
+                    <li key={key}>
+                      <span className="sensor-label">{key}:</span>{" "}
+                      <span className={`sensor-value ${status}`}>{value}</span>
+                    </li>
+                  );
+                })}
             </ul>
           </div>
         )}

@@ -1,16 +1,48 @@
 import React, { useState, useEffect, useRef } from "react";
 import Sidebar from "../components/Sidebar";
-import { supabase } from "../supabaseClient"; // connect Supabase
+import { supabase } from "../supabaseClient";
 import "../assets/datahistory.css";
 
-const isSafe = (entry) => {
-  return (
-    entry.ph >= 6.5 &&
-    entry.ph <= 8.5 &&
-    parseFloat(entry.turbidity) < 5 &&
-    parseFloat(entry.temp) < 30 &&
-    parseFloat(entry.tds) < 500
-  );
+// ✅ Per-sensor evaluation (same logic as ManualScan)
+const getSensorStatus = (type, value) => {
+  if (value === null || value === undefined) return "unknown";
+  const val = parseFloat(value);
+
+  switch (type) {
+    case "ph":
+      if (val >= 6.5 && val <= 8.5) return "safe";
+      if ((val >= 6 && val < 6.5) || (val > 8.5 && val <= 9)) return "caution";
+      return "unsafe";
+    case "turbidity":
+      if (val <= 5) return "safe";
+      if (val > 5 && val <= 10) return "caution";
+      return "unsafe";
+    case "temperature":
+      if (val >= 24 && val <= 32) return "safe";
+      if ((val >= 20 && val < 24) || (val > 32 && val <= 35)) return "caution";
+      return "unsafe";
+    case "tds":
+      if (val <= 500) return "safe";
+      if (val > 500 && val <= 1000) return "caution";
+      return "unsafe";
+    default:
+      return "unknown";
+  }
+};
+
+// ✅ Compute overall status
+const getOverallStatus = (entry) => {
+  const statuses = [
+    getSensorStatus("ph", entry.ph),
+    getSensorStatus("turbidity", entry.turbidity),
+    getSensorStatus("temperature", entry.temperature),
+    getSensorStatus("tds", entry.tds),
+  ];
+
+  if (statuses.includes("unsafe")) return "Unsafe";
+  if (statuses.includes("caution")) return "Caution";
+  if (statuses.every((s) => s === "safe")) return "Safe";
+  return "Unknown";
 };
 
 const DataHistory = () => {
@@ -27,14 +59,13 @@ const DataHistory = () => {
 
   const tableContainerRef = useRef(null);
 
-  // 🔹 Fetch real data from Supabase
+  // ✅ Fetch Supabase data
   useEffect(() => {
     const fetchData = async () => {
       const { data: rows, error } = await supabase
-       .from("dataset_history")
-       .select("*")
-       .order("created_at", { ascending: false });
-
+        .from("dataset_history")
+        .select("*")
+        .order("created_at", { ascending: false });
 
       if (error) {
         console.error("Error fetching data:", error.message);
@@ -46,26 +77,25 @@ const DataHistory = () => {
     fetchData();
   }, []);
 
-  // 🔹 Apply filters
+  // ✅ Apply filters
   useEffect(() => {
     let filtered = data;
 
     if (filters.status !== "all") {
-      filtered = filtered.filter((entry) =>
-        filters.status === "safe" ? isSafe(entry) : !isSafe(entry)
+      filtered = filtered.filter(
+        (entry) => getOverallStatus(entry).toLowerCase() === filters.status
       );
     }
     if (filters.date.trim() !== "") {
-  filtered = filtered.filter((entry) =>
-    entry.created_at.startsWith(filters.date)
-  );
-  }
+      filtered = filtered.filter((entry) =>
+        entry.created_at.startsWith(filters.date)
+      );
+    }
     if (filters.text.trim() !== "") {
-  filtered = filtered.filter((entry) =>
-    entry.created_at.toLowerCase().includes(filters.text.toLowerCase())
-  );
-  }
-
+      filtered = filtered.filter((entry) =>
+        entry.created_at.toLowerCase().includes(filters.text.toLowerCase())
+      );
+    }
 
     setFilteredData(filtered);
     setPage(1);
@@ -84,14 +114,13 @@ const DataHistory = () => {
     const csv = [
       ["Time", "pH", "Turbidity", "Temperature", "TDS", "Status"],
       ...filteredData.map((row) => [
-  row.created_at,
-  row.ph,
-  row.turbidity,
-  row.temperature,
-  row.tds,
-  isSafe(row) ? "Safe" : "Unsafe",
-]),
-
+        row.created_at,
+        row.ph,
+        row.turbidity,
+        row.temperature,
+        row.tds,
+        getOverallStatus(row),
+      ]),
     ]
       .map((e) => e.join(","))
       .join("\n");
@@ -125,6 +154,7 @@ const DataHistory = () => {
               >
                 <option value="all">All</option>
                 <option value="safe">Safe</option>
+                <option value="caution">Caution</option>
                 <option value="unsafe">Unsafe</option>
               </select>
             </label>
@@ -163,7 +193,7 @@ const DataHistory = () => {
           </div>
         </div>
 
-        {/* Scrollable Table Container */}
+        {/* Scrollable Table */}
         <div className="table-container" ref={tableContainerRef}>
           <table>
             <thead>
@@ -184,16 +214,19 @@ const DataHistory = () => {
                   </td>
                 </tr>
               ) : (
-                currentData.map((entry, index) => (
-                  <tr key={index} className={isSafe(entry) ? "safe" : "unsafe"}>
-                    <td>{new Date(entry.created_at).toLocaleString()}</td>
-                    <td>{entry.ph}</td>
-                    <td>{entry.turbidity}</td>
-                    <td>{entry.temperature}</td>
-                    <td>{entry.tds}</td>
-                    <td>{isSafe(entry) ? "Safe" : "Unsafe"}</td>
-                  </tr>
-                ))
+                currentData.map((entry, index) => {
+                  const status = getOverallStatus(entry);
+                  return (
+                    <tr key={index} className={status.toLowerCase()}>
+                      <td>{new Date(entry.created_at).toLocaleString()}</td>
+                      <td>{entry.ph}</td>
+                      <td>{entry.turbidity}</td>
+                      <td>{entry.temperature}</td>
+                      <td>{entry.tds}</td>
+                      <td>{status}</td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

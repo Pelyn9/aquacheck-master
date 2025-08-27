@@ -1,19 +1,20 @@
-// src/pages/Dashboard.jsx
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import "../assets/databoard.css";
 
 import { AdminContext } from "../App";
+import { AutoScanContext } from "../context/AutoScanContext"; // ✅ NEW
 import { supabase } from "../supabaseClient";
-
-// ✅ Import beach image (handled by React, no need for full path)
 import beachImage from "../assets/picture/cuaco.jpg";
 
 const Dashboard = ({ isAdminProp }) => {
   const { isAdmin: contextIsAdmin } = useContext(AdminContext);
-  const isAdmin = isAdminProp ?? contextIsAdmin; // prioritize prop if passed
+  const isAdmin = isAdminProp ?? contextIsAdmin;
   const navigate = useNavigate();
+
+  const { autoScanRunning, startAutoScan, stopAutoScan, intervalTime, setIntervalTime } =
+    useContext(AutoScanContext);
 
   const [sensorData, setSensorData] = useState({
     ph: "N/A",
@@ -22,9 +23,7 @@ const Dashboard = ({ isAdminProp }) => {
     tds: "N/A",
   });
 
-  const [intervalTime, setIntervalTime] = useState(1800000); // 30 min
   const [status, setStatus] = useState("Awaiting sensor data...");
-  const [autoScanRunning, setAutoScanRunning] = useState(false);
 
   const fetchSensorData = async () => {
     try {
@@ -35,11 +34,9 @@ const Dashboard = ({ isAdminProp }) => {
 
       setSensorData({
         ph: data.ph ? parseFloat(data.ph).toFixed(2) : "N/A",
-        turbidity: data.turbidity
-          ? `${parseFloat(data.turbidity).toFixed(1)} NTU`
-          : "N/A",
-        temp: data.temp ? `${parseFloat(data.temp).toFixed(1)}°C` : "N/A",
-        tds: data.tds ? `${parseFloat(data.tds).toFixed(0)} ppm` : "N/A",
+        turbidity: data.turbidity ? parseFloat(data.turbidity).toFixed(1) : "N/A",
+        temp: data.temp ? parseFloat(data.temp).toFixed(1) : "N/A",
+        tds: data.tds ? parseFloat(data.tds).toFixed(0) : "N/A",
       });
 
       setStatus("✅ Data fetched from sensor!");
@@ -49,22 +46,41 @@ const Dashboard = ({ isAdminProp }) => {
     }
   };
 
-  // Auto scan for admins
-  useEffect(() => {
-    if (!isAdmin || !autoScanRunning) return;
-    fetchSensorData();
-    const interval = setInterval(fetchSensorData, intervalTime);
-    return () => clearInterval(interval);
-  }, [autoScanRunning, intervalTime, isAdmin]);
+  // === Utility: Evaluate sensor status ===
+  const getSensorStatus = (type, value) => {
+    if (value === "N/A") return "unknown";
 
-  // Auto-save to Supabase (admins only)
+    const val = parseFloat(value);
+    switch (type) {
+      case "ph":
+        if (val >= 6.5 && val <= 8.5) return "safe";
+        if ((val >= 6 && val < 6.5) || (val > 8.5 && val <= 9)) return "caution";
+        return "unsafe";
+      case "turbidity":
+        if (val <= 5) return "safe";
+        if (val > 5 && val <= 10) return "caution";
+        return "unsafe";
+      case "temp":
+        if (val >= 24 && val <= 32) return "safe";
+        if ((val >= 20 && val < 24) || (val > 32 && val <= 35)) return "caution";
+        return "unsafe";
+      case "tds":
+        if (val <= 500) return "safe";
+        if (val > 500 && val <= 1000) return "caution";
+        return "unsafe";
+      default:
+        return "unknown";
+    }
+  };
+
+  // Auto-save to Supabase (admins)
   useEffect(() => {
     if (!isAdmin) return;
     const dailySave = setInterval(async () => {
       const newEntry = { ...sensorData, timestamp: new Date().toISOString() };
       const { error } = await supabase.from("sensor_logs").insert([newEntry]);
       if (error) console.error("❌ Auto-save failed:", error);
-    }, 86400000); // once per day
+    }, 86400000);
     return () => clearInterval(dailySave);
   }, [sensorData, isAdmin]);
 
@@ -76,21 +92,26 @@ const Dashboard = ({ isAdminProp }) => {
     else setStatus("✅ Data saved successfully!");
   };
 
-  const toggleAutoScan = () => setAutoScanRunning((prev) => !prev);
+  const toggleAutoScan = () => {
+    if (autoScanRunning) {
+      stopAutoScan();
+    } else {
+      startAutoScan(fetchSensorData);
+    }
+  };
 
   const handleManualScanClick = () => {
-    if (!autoScanRunning)
+    if (!autoScanRunning) {
       navigate("/manual-scan", { state: { autoScanRunning } });
-    else setStatus("⚠️ Stop Auto Scan before using Manual Scan.");
+    } else {
+      setStatus("⚠️ Stop Auto Scan before using Manual Scan.");
+    }
   };
 
   return (
     <div className="container">
       {isAdmin && <Sidebar />}
-      <main
-        className={`main-content ${!isAdmin ? "visitor-mode" : ""}`}
-        style={{ marginLeft: isAdmin ? undefined : 0 }}
-      >
+      <main className={`main-content ${!isAdmin ? "visitor-mode" : ""}`} style={{ marginLeft: isAdmin ? undefined : 0 }}>
         {/* Header */}
         {isAdmin ? (
           <header className="topbar">
@@ -100,7 +121,7 @@ const Dashboard = ({ isAdminProp }) => {
           <div className="wave-header">AquaCheck – Real-Time Water Quality</div>
         )}
 
-        {/* Visitor Page Hero Background */}
+        {/* Visitor Hero */}
         {!isAdmin && (
           <section
             className="beach-hero"
@@ -120,21 +141,10 @@ const Dashboard = ({ isAdminProp }) => {
             }}
           >
             <div>
-              <h2
-                className="hero-title"
-                style={{
-                  textShadow: "2px 2px 6px rgba(0,0,0,0.6)",
-                  fontWeight: "bold",
-                }}
-              >
+              <h2 className="hero-title" style={{ textShadow: "2px 2px 6px rgba(0,0,0,0.6)", fontWeight: "bold" }}>
                 🌊 Cuaco Beach, Davao City
               </h2>
-              <p
-                className="hero-subtitle"
-                style={{
-                  textShadow: "1px 1px 4px rgba(0,0,0,0.6)",
-                }}
-              >
+              <p className="hero-subtitle" style={{ textShadow: "1px 1px 4px rgba(0,0,0,0.6)" }}>
                 IN Dalisay St., Lanang, Buhangin, Davao City
               </p>
             </div>
@@ -143,9 +153,7 @@ const Dashboard = ({ isAdminProp }) => {
 
         {/* Sensor Section */}
         <section className="sensor-section" id="dashboard">
-          {!isAdmin && (
-            <h2 className="visitor-subtitle">Live Sensor Readings</h2>
-          )}
+          {!isAdmin && <h2 className="visitor-subtitle">Live Sensor Readings</h2>}
 
           {isAdmin && (
             <div className="scan-controls">
@@ -166,23 +174,14 @@ const Dashboard = ({ isAdminProp }) => {
                 </select>
               </div>
               <div className="button-group">
-                <button
-                  className="manual-scan-btn"
-                  onClick={handleManualScanClick}
-                  disabled={autoScanRunning}
-                >
+                <button className="manual-scan-btn" onClick={handleManualScanClick} disabled={autoScanRunning}>
                   Manual Scan
                 </button>
-                <button
-                  className="manual-scan-btn save-btn"
-                  onClick={handleSave}
-                >
+                <button className="manual-scan-btn save-btn" onClick={handleSave}>
                   Save
                 </button>
                 <button
-                  className={`manual-scan-btn start-stop-btn ${
-                    autoScanRunning ? "stop" : "start"
-                  }`}
+                  className={`manual-scan-btn start-stop-btn ${autoScanRunning ? "stop" : "start"}`}
                   onClick={toggleAutoScan}
                 >
                   {autoScanRunning ? "Stop Auto Scan" : "Start Auto Scan"}
@@ -192,21 +191,21 @@ const Dashboard = ({ isAdminProp }) => {
           )}
 
           <div className="sensor-grid">
-            <div className="sensor-card">
+            <div className={`sensor-card ${getSensorStatus("ph", sensorData.ph)}`}>
               <h3>pH Level</h3>
               <p>{sensorData.ph}</p>
             </div>
-            <div className="sensor-card">
+            <div className={`sensor-card ${getSensorStatus("turbidity", sensorData.turbidity)}`}>
               <h3>Turbidity</h3>
-              <p>{sensorData.turbidity}</p>
+              <p>{sensorData.turbidity} NTU</p>
             </div>
-            <div className="sensor-card">
+            <div className={`sensor-card ${getSensorStatus("temp", sensorData.temp)}`}>
               <h3>Temperature</h3>
-              <p>{sensorData.temp}</p>
+              <p>{sensorData.temp} °C</p>
             </div>
-            <div className="sensor-card">
+            <div className={`sensor-card ${getSensorStatus("tds", sensorData.tds)}`}>
               <h3>TDS</h3>
-              <p>{sensorData.tds}</p>
+              <p>{sensorData.tds} ppm</p>
             </div>
           </div>
 

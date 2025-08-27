@@ -168,6 +168,27 @@ select:focus {
   font-weight: bold;
   color: #007acc;
 }
+/* Sensor status colors */
+.sensor-card.safe {
+  border-left: 6px solid #28a745;
+  background: #eafaf1;
+  color: #155724;
+}
+.sensor-card.caution {
+  border-left: 6px solid #ffc107;
+  background: #fff8e1;
+  color: #856404;
+}
+.sensor-card.unsafe {
+  border-left: 6px solid #dc3545;
+  background: #fdecea;
+  color: #721c24;
+}
+.sensor-card.unknown {
+  border-left: 6px solid #6c757d;
+  background: #f8f9fa;
+  color: #495057;
+}
 
 /* === STATUS MESSAGE === */
 .status-card {
